@@ -15,3 +15,14 @@
 /phpunit.xml
 /.phpunit.cache/
 ###< phpunit/phpunit ###
+/.env.test
+/.idea/.gitignore
+
+###> phpstorm ###
+/.idea/commandlinetools/schemas/frameworkDescriptionVersion1.1.4.xsd
+/.idea/fruits-and-vegetables.iml
+/fruitveg.postman_collection.json
+/.idea/modules.xml
+/.idea/php.xml
+/.idea/commandlinetools/Symfony_21_07_2025__09_46.xml
+/.idea/vcs.xml
