@@ -1,0 +1,15 @@
+controllers:
+    resource:
+        path: ../src/Controller/
+        namespace: App\Controller
+    type: attribute
+
+list_foods:
+    path: /api/foods
+    controller: App\Controller\FoodController::list
+    methods: GET
+
+add_food:
+    path: /api/foods
+    controller: App\Controller\FoodController::add
+    methods: POST
