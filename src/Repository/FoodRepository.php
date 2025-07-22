@@ -8,6 +8,7 @@ use App\Entity\Food as EntityFood;
 use App\Exception\FoodMapperException;
 use App\Exception\FoodRepositoryException;
 use App\Service\FoodMapper;
+use App\Util\DbalHelper;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 use InvalidArgumentException;
@@ -17,8 +18,11 @@ class FoodRepository extends ServiceEntityRepository implements FoodRepositoryIn
 {
     private object $connection;
 
-    public function __construct(private readonly ManagerRegistry $registry, private readonly FoodMapper $mapper)
-    {
+    public function __construct(
+        private readonly ManagerRegistry $registry,
+        private readonly FoodMapper $mapper,
+        private readonly DbalHelper $dbalHelper,
+    ) {
         parent::__construct($registry, EntityFood::class);
 
         $this->connection = $registry->getConnection();
@@ -60,15 +64,14 @@ class FoodRepository extends ServiceEntityRepository implements FoodRepositoryIn
             $values[] = [
                 'name' => $food->getName(),
                 'type' => $food->getType(),
-                'quantity' => $food->getQuantityInGrams(),
-                'unit' => DomainFood::UNIT_GRAM,
+                'quantity_in_grams' => $food->getQuantityInGrams(),
             ];
         }
 
         $this->connection->beginTransaction();
 
         try {
-            $this->connection->insertBatch('food', $values);
+            $this->dbalHelper->insertBatch($this->connection, 'food', $values);
             $this->connection->commit();
         } catch (Throwable $e) {
             $this->connection->rollBack();

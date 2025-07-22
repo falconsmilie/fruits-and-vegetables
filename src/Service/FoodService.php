@@ -4,18 +4,19 @@ namespace App\Service;
 
 use App\Domain\Model\Food;
 use App\Domain\Repository\FoodRepositoryInterface;
+use App\DTO\AddFoodRequest;
+use App\Exception\FoodFactoryException;
 use App\Exception\FoodRepositoryException;
 use App\Exception\FoodServiceException;
-use InvalidArgumentException;
+use App\Factory\FoodFactory;
 use Symfony\Component\HttpFoundation\Response;
 
-class FoodService
+readonly class FoodService
 {
-    private FoodRepositoryInterface $repository;
-
-    public function __construct(FoodRepositoryInterface $repository)
-    {
-        $this->repository = $repository;
+    public function __construct(
+        private FoodRepositoryInterface $repository,
+        private FoodFactory $foodFactory
+    ) {
     }
 
     /**
@@ -25,6 +26,35 @@ class FoodService
     {
         try {
             $this->repository->save($food);
+        } catch (FoodRepositoryException $e) {
+            throw new FoodServiceException($e->getMessage(), $e->getCode(), $e);
+        }
+    }
+
+    /**
+     * @param AddFoodRequest[] $dtos
+     * @throws FoodServiceException
+     */
+    public function bulkInsert(array $dtos): void
+    {
+        $foods = [];
+
+        foreach ($dtos as $dto) {
+            if (!$dto instanceof AddFoodRequest) {
+                throw new FoodServiceException('Invalid DTO provided.');
+            }
+
+            try {
+                $food = $this->foodFactory->fromAddRequest($dto);
+            } catch (FoodFactoryException $e) {
+                throw new FoodServiceException($e->getMessage(), $e->getCode(), $e);
+            }
+
+            $foods[] = $food;
+        }
+
+        try {
+            $this->repository->bulkInsert($foods);
         } catch (FoodRepositoryException $e) {
             throw new FoodServiceException($e->getMessage(), $e->getCode(), $e);
         }

@@ -5,13 +5,12 @@ namespace App\Controller;
 use App\DTO\AddFoodRequest;
 use App\DTO\ListFoodRequest;
 use App\Domain\Model\Food;
-use App\Domain\Model\Fruit;
-use App\Domain\Model\Vegetable;
+use App\DTO\ListFoodResponse;
+use App\DTO\ValidationError;
 use App\Exception\FoodServiceException;
 use App\Service\FoodService;
-use App\Util\DbalHelper;
-use Doctrine\DBAL\Connection;
 use Exception;
+use JsonException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -19,6 +18,8 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Serializer\SerializerInterface;
+use Symfony\Component\Validator\ConstraintViolationList;
+use Symfony\Component\Validator\ConstraintViolationListInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 #[Route('/api/food')]
@@ -28,10 +29,8 @@ class FoodController extends AbstractController
 
     public function __construct(
         private readonly FoodService $foodService,
-        private readonly ValidatorInterface $validator,
         private readonly SerializerInterface $serializer,
-        private readonly Connection $connection,
-        private readonly DbalHelper $dbalHelper,
+        private readonly ValidatorInterface $validator,
     ) {
     }
 
@@ -45,8 +44,8 @@ class FoodController extends AbstractController
 
         $errors = $this->validator->validate($dto);
 
-        if (count($errors) > 0) {
-            return $this->json($this->formatErrors($errors), 400);
+        if ($errors->count() > 0) {
+            return $this->json(['errors'=> $this->formatErrors($errors)], Response::HTTP_BAD_REQUEST);
         }
 
         try {
@@ -58,12 +57,12 @@ class FoodController extends AbstractController
             );
         }
 
-        $result = array_map(fn($food) => [
-            'name' => $food->getName(),
-            'quantity' => $this->convertQuantity($food->getQuantityInGrams(), $dto->unit),
-            'unit' => $dto->unit,
-            'type' => $food->getType(),
-        ], $foods);
+        $result = array_map(fn(Food $food) => new ListFoodResponse(
+            $food->getName(),
+            $this->convertQuantity($food->getQuantityInGrams(), $dto->unit),
+            $dto->unit,
+            $food->getType()
+        ), $foods);
 
         return $this->json($result);
     }
@@ -71,72 +70,67 @@ class FoodController extends AbstractController
     #[Route('/add', name: 'food_add', methods: ['POST'])]
     public function add(Request $request): JsonResponse
     {
-        $data = json_decode($request->getContent(), true);
+        try {
+            $foods = json_decode($request->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        } catch (JsonException $e) {
+            return $this->json(['errors' => [$e->getMessage()]], Response::HTTP_BAD_REQUEST);
+        }
+
+        if (!is_array($foods)) {
+            throw new BadRequestHttpException('Expected a list of food items.');
+        }
+
         $dtos = [];
 
         try {
-            foreach ($data as $item) {
-                $dtos[] = $this->serializer->denormalize($item, AddFoodRequest::class);
+            foreach ($foods as $food) {
+                $dtos[] = $this->serializer->denormalize($food, AddFoodRequest::class);
             }
         } catch (Exception $e) {
-            throw new BadRequestHttpException('Invalid JSON payload: ' . $e->getMessage());
+            return $this->json(['errors' => [$e->getMessage()]], Response::HTTP_BAD_REQUEST);
         }
 
-        $allErrors = [];
+        $errors = [];
         foreach ($dtos as $index => $dto) {
-            $errors = $this->validator->validate($dto);
-            if (count($errors) > 0) {
-                $allErrors[$index] = $this->formatErrors($errors);
+            $violations = $this->validator->validate($dto);
+            if ($violations->count() > 0) {
+                $errors[$index] = $this->formatErrors($violations);
             }
         }
 
-        if (!empty($allErrors)) {
-            return $this->json(['errors' => $allErrors], Response::HTTP_BAD_REQUEST);
-        }
-
-        $rows = [];
-        foreach ($dtos as $dto) {
-            $quantityInGrams = $dto->unit === Food::UNIT_KILOGRAM
-                ? (int) ($dto->quantity * 1000)
-                : (int) $dto->quantity;
-
-            $rows[] = [
-                'name' => $dto->name,
-                'type' => $dto->type,
-                'quantity_in_grams' => $quantityInGrams,
-            ];
+        if (!empty($errors)) {
+            return $this->json(['errors' => $errors], Response::HTTP_BAD_REQUEST);
         }
 
         try {
-            $this->dbalHelper->insertBatch($this->connection, 'food', $rows);
-        } catch (Exception $e) {
+            $this->foodService->bulkInsert($dtos);
+        } catch (FoodServiceException $e) {
             return $this->json([
                 'status' => 'failed',
-                'message' => 'Database error: ' . $e->getMessage(),
+                'message' => 'Unable to save food: ' . $e->getMessage(),
             ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
 
         return $this->json(['status' => 'success']);
     }
 
-
     private function convertQuantity(int $quantity, string $unit): float|int
     {
         return $unit === Food::UNIT_KILOGRAM ? $quantity / self::GRAMS_PER_KILOGRAM : $quantity;
     }
 
-    private function formatErrors($errors): array
+    private function formatErrors(ConstraintViolationListInterface $errors): array
     {
         $errorMessages = [];
 
         foreach ($errors as $error) {
-            $errorMessages[] = [
-                'property' => $error->getPropertyPath(),
-                'message' => $error->getMessage(),
-                'code' => $error->getCode(),
-            ];
+            $errorMessages[] = new ValidationError(
+                $error->getPropertyPath(),
+                $error->getMessage(),
+                $error->getCode()
+            );
         }
 
-        return ['errors' => $errorMessages];
+        return $errorMessages;
     }
 }

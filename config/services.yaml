@@ -18,15 +18,3 @@ services:
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
-    App\Service\FoodMapper: ~
-    App\Repository\FoodRepository:
-        arguments:
-            $registry: '@doctrine'
-            $mapper: '@App\Service\FoodMapper'
-        tags: [ 'doctrine.repository_service' ]
-
-    App\Domain\Repository\FoodRepositoryInterface: '@App\Repository\FoodRepository'
-
-    App\Service\FoodService:
-        arguments:
-            $repository: '@App\Domain\Repository\FoodRepositoryInterface'

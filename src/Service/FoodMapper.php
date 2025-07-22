@@ -52,7 +52,7 @@ class FoodMapper
         }
 
         if ($entity === null) {
-            $entity = new EntityFood();
+            $entity = new EntityFood;
         }
 
         $entity->setName($domain->getName());
