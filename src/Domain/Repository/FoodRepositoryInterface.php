@@ -15,5 +15,5 @@ interface FoodRepositoryInterface
     public function remove(Food $food): void;
 
     /** @return Food[] */
-    public function findByType(string $type, ?string $filterName = null): array;
+    public function findByType(string $type, ?string $name = null): array;
 }

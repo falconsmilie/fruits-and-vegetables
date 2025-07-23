@@ -11,7 +11,7 @@ class ListFoodRequest
     #[Assert\Choice(choices: [Food::TYPE_FRUIT, Food::TYPE_VEGETABLE])]
     public ?string $type = null;
 
-    public ?string $filter = null;
+    public ?string $name = null;
 
     #[Assert\Choice(choices: [Food::UNIT_GRAM, Food::UNIT_KILOGRAM])]
     public string $unit = Food::UNIT_GRAM;

@@ -2,7 +2,7 @@
 
 namespace App\DTO;
 
-readonly class ValidationError
+readonly class Error
 {
     public function __construct(
         public string $property,

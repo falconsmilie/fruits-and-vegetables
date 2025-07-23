@@ -89,15 +89,15 @@ class FoodRepository extends ServiceEntityRepository implements FoodRepositoryIn
         }
     }
 
-    public function findByType(string $type, ?string $filterName = null): array
+    public function findByType(string $type, ?string $name = null): array
     {
         $qb = $this->createQueryBuilder('f')
             ->andWhere('f.type = :type')
             ->setParameter('type', $type);
 
-        if ($filterName !== null) {
+        if ($name !== null) {
             $qb->andWhere('LOWER(f.name) LIKE LOWER(:name)')
-                ->setParameter('name', '%' . $filterName . '%');
+                ->setParameter('name', '%' . $name . '%');
         }
 
         $entities = $qb->getQuery()->getResult();
