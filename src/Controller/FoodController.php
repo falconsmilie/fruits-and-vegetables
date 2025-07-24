@@ -70,13 +70,9 @@ class FoodController extends AbstractController
     public function add(Request $request): JsonResponse
     {
         try {
-            $foods = json_decode($request->getContent(), true, 512, JSON_THROW_ON_ERROR);
-        } catch (JsonException $e) {
+            $foods = $request->toArray();
+        } catch (JsonException  $e) {
             return $this->jsonError($e->getMessage());
-        }
-
-        if (!is_array($foods)) {
-            return $this->jsonError('Expected a list of food items.');
         }
 
         $dtos = [];
@@ -109,7 +105,7 @@ class FoodController extends AbstractController
             return $this->jsonError($e->getMessage(), Response::HTTP_INTERNAL_SERVER_ERROR);
         }
 
-        return $this->json(['status' => 'success']);
+        return $this->json(['status' => 'success'], Response::HTTP_CREATED);
     }
 
     private function convertQuantity(int $quantity, string $unit): float|int

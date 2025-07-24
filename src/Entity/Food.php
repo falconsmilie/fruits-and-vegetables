@@ -6,8 +6,11 @@ use App\Repository\FoodRepository;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: FoodRepository::class)]
+#[ORM\Table(name: 'food')]
 class Food
 {
+    public const TABLE_NAME = 'food';
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]

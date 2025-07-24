@@ -9,13 +9,16 @@ use App\Exception\FoodFactoryException;
 use App\Exception\FoodRepositoryException;
 use App\Exception\FoodServiceException;
 use App\Factory\FoodFactory;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\Response;
+use Throwable;
 
 readonly class FoodService
 {
     public function __construct(
         private FoodRepositoryInterface $repository,
-        private FoodFactory $foodFactory
+        private FoodFactory $foodFactory,
+        private LoggerInterface $logger
     ) {
     }
 
@@ -25,8 +28,13 @@ readonly class FoodService
     public function addFood(Food $food): void
     {
         try {
-            $this->repository->save($food);
-        } catch (FoodRepositoryException $e) {
+            $this->repository->entityManager()->wrapInTransaction(function () use ($food) {
+                $this->repository->save($food);
+                $this->repository->flush();
+            });
+        } catch (FoodRepositoryException|Throwable $e) {
+            $this->logger->error($e->getMessage(), ['exception' => $e]);
+
             throw new FoodServiceException($e->getMessage(), $e->getCode(), $e);
         }
     }
@@ -37,32 +45,38 @@ readonly class FoodService
      */
     public function bulkInsert(array $dtos): void
     {
-        $foods = [];
-
-        foreach ($dtos as $dto) {
-            if (!$dto instanceof AddFoodRequest) {
-                throw new FoodServiceException('Invalid DTO provided.');
-            }
-
-            try {
-                $food = $this->foodFactory->fromAddRequest($dto);
-            } catch (FoodFactoryException $e) {
-                throw new FoodServiceException($e->getMessage(), $e->getCode(), $e);
-            }
-
-            $foods[] = $food;
+        if (empty($dtos)) {
+            throw new FoodServiceException('Cannot insert empty food list.');
         }
 
+        $foods = $this->convertDtosToFoods($dtos);
+
         try {
-            $this->repository->bulkInsert($foods);
-        } catch (FoodRepositoryException $e) {
+            $this->repository->entityManager()->wrapInTransaction(function () use ($foods) {
+                $this->repository->bulkInsert($foods);
+            });
+        } catch (FoodRepositoryException|Throwable $e) {
+            $this->logger->error($e->getMessage(), ['exception' => $e]);
+
             throw new FoodServiceException($e->getMessage(), $e->getCode(), $e);
         }
     }
 
+    /**
+     * @throws FoodServiceException
+     */
     public function removeFood(Food $food): void
     {
-        $this->repository->remove($food);
+        try {
+            $this->repository->entityManager()->wrapInTransaction(function () use ($food) {
+                $this->repository->remove($food);
+                $this->repository->flush();
+            });
+        } catch (Throwable $e) {
+            $this->logger->error($e->getMessage(), ['exception' => $e]);
+
+            throw new FoodServiceException($e->getMessage(), $e->getCode(), $e);
+        }
     }
 
     /**
@@ -71,10 +85,37 @@ readonly class FoodService
      */
     public function listFoodByType(string $type, ?string $filterName = null): array
     {
-        if (!in_array($type, [Food::TYPE_FRUIT, Food::TYPE_VEGETABLE], true)) {
-            throw new FoodServiceException('Invalid food type', Response::HTTP_BAD_REQUEST);
+        if (!Food::isValidType($type)) {
+            throw new FoodServiceException('Invalid food type: ' . $type, Response::HTTP_BAD_REQUEST);
         }
 
         return $this->repository->findByType($type, $filterName);
+    }
+
+    /**
+     * @param AddFoodRequest[] $dtos
+     * @throws FoodServiceException
+     */
+    private function convertDtosToFoods(array $dtos): array
+    {
+        $foods = [];
+
+        foreach ($dtos as $dto) {
+            if (!$dto instanceof AddFoodRequest) {
+                throw new FoodServiceException('Invalid DTO provided for bulk insert.');
+            }
+
+            try {
+                $food = $this->foodFactory->fromAddRequest($dto);
+            } catch (FoodFactoryException $e) {
+                $this->logger->error($e->getMessage(), ['exception' => $e]);
+
+                throw new FoodServiceException($e->getMessage(), $e->getCode(), $e);
+            }
+
+            $foods[] = $food;
+        }
+
+        return $foods;
     }
 }

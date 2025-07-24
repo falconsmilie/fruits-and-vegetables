@@ -16,6 +16,11 @@ abstract class Food implements FoodInterface
 
     abstract public function getType(): string;
 
+    public static function isValidType(string $type): bool
+    {
+        return in_array($type, [self::TYPE_FRUIT, self::TYPE_VEGETABLE], true);
+    }
+
     public function getName(): string
     {
         return $this->name;
