@@ -15,13 +15,16 @@ class DbalHelper
 
         $columns = array_keys($rows[0]);
 
-        $placeholders = '(' . implode(',', array_fill(0, count($columns), '?')) . ')';
+        $table = '`' . str_replace('`', '``', $table) . '`';
+        $columns = array_map(fn($col) => '`' . str_replace('`', '``', $col) . '`', $columns);
 
+        $placeholders = '(' . implode(',', array_fill(0, count($columns), '?')) . ')';
         $values = implode(',', array_fill(0, count($rows), $placeholders));
 
         $updateParts = [];
         foreach ($columns as $col) {
-            if ($col === 'quantity_in_grams') {
+            $colName = trim($col, '`');
+            if ($colName === 'quantity_in_grams') {
                 $updateParts[] = "$col = VALUES($col)";
             }
         }
@@ -41,10 +44,12 @@ class DbalHelper
         $params = [];
         foreach ($rows as $row) {
             foreach ($columns as $col) {
-                $params[] = $row[$col];
+                $colName = trim($col, '`');
+                $params[] = $row[$colName];
             }
         }
 
         $conn->executeStatement($sql, $params);
     }
+
 }

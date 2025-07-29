@@ -89,6 +89,7 @@ final class FoodRepository extends ServiceEntityRepository implements FoodReposi
     }
 
     /**
+     * @param array<DomainFood> $foods
      * @throws FoodRepositoryException
      */
     public function bulkInsert(array $foods): void
@@ -104,11 +105,7 @@ final class FoodRepository extends ServiceEntityRepository implements FoodReposi
                 throw new FoodRepositoryException('All items must be instances of Food.');
             }
 
-            $values[] = [
-                'name' => $food->getName(),
-                'type' => $food->getType(),
-                'quantity_in_grams' => $food->getQuantityInGrams(),
-            ];
+            $values[] = $this->mapper->domainToDbArray($food);
         }
 
         try {
@@ -143,7 +140,7 @@ final class FoodRepository extends ServiceEntityRepository implements FoodReposi
     }
 
     /**
-     * @return DomainFood[]
+     * @return array<DomainFood>
      * @throws FoodRepositoryException
      */
     public function findByType(string $type, ?string $name = null): array

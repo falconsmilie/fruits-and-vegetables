@@ -40,13 +40,13 @@ readonly class FoodService
     }
 
     /**
-     * @param AddFoodRequest[] $dtos
+     * @param array<AddFoodRequest> $dtos
      * @throws FoodServiceException
      */
     public function bulkInsert(array $dtos): void
     {
         if (empty($dtos)) {
-            throw new FoodServiceException('Cannot insert empty food list.');
+            throw new FoodServiceException('Cannot insert empty food list.', Response::HTTP_BAD_REQUEST);
         }
 
         $foods = $this->convertDtosToFoods($dtos);
@@ -80,7 +80,7 @@ readonly class FoodService
     }
 
     /**
-     * @return Food[]
+     * @return array<Food>
      * @throws FoodServiceException
      */
     public function listFoodByType(string $type, ?string $filterName = null): array
@@ -93,7 +93,7 @@ readonly class FoodService
     }
 
     /**
-     * @param AddFoodRequest[] $dtos
+     * @param array<AddFoodRequest> $dtos
      * @throws FoodServiceException
      */
     private function convertDtosToFoods(array $dtos): array
@@ -102,7 +102,7 @@ readonly class FoodService
 
         foreach ($dtos as $dto) {
             if (!$dto instanceof AddFoodRequest) {
-                throw new FoodServiceException('Invalid DTO provided for bulk insert.');
+                throw new FoodServiceException('Invalid DTO provided for bulk insert.', Response::HTTP_BAD_REQUEST);
             }
 
             try {

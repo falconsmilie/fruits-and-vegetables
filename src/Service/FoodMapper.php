@@ -18,23 +18,22 @@ class FoodMapper
     {
         $type = $entity->getType();
         $name = $entity->getName();
-        $weight = $entity->getQuantityInGrams();
+        $quantity = $entity->getQuantityInGrams();
 
-        if ($type === null || $name === null || $weight === null) {
-            throw new FoodMapperException('Food has null property: ' . json_encode([
-                    'type' => $type,
-                    'name' => $name,
-                    'weight' => $weight,
-                ]),
-                Response::HTTP_BAD_REQUEST
-            );
+        if ($type === null || $name === null || $quantity === null) {
+            throw new FoodMapperException(sprintf(
+                'Cannot map entity to domain: null value(s) found [type=%s, name=%s, weight=%s]',
+                var_export($type, true),
+                var_export($name, true),
+                var_export($quantity, true)
+            ), Response::HTTP_BAD_REQUEST);
         }
 
-        return match ($entity->getType()) {
-            DomainFood::TYPE_FRUIT => new Fruit($entity->getName(), $entity->getQuantityInGrams()),
-            DomainFood::TYPE_VEGETABLE => new Vegetable($entity->getName(), $entity->getQuantityInGrams()),
+        return match ($type) {
+            DomainFood::TYPE_FRUIT => new Fruit($name, $quantity),
+            DomainFood::TYPE_VEGETABLE => new Vegetable($name, $quantity),
             default => throw new FoodMapperException(
-                'Unknown food type: ' . $entity->getType(),
+                'Unknown food type: ' . $type,
                 Response::HTTP_BAD_REQUEST
             ),
         };
@@ -45,6 +44,13 @@ class FoodMapper
      */
     public function domainToEntity(DomainFood $domain, ?EntityFood $entity = null): EntityFood
     {
+        if (!$domain instanceof Fruit && !$domain instanceof Vegetable) {
+            throw new FoodMapperException(
+                'Unsupported domain model type: ' . get_class($domain),
+                Response::HTTP_BAD_REQUEST
+            );
+        }
+
         $type = $domain->getType();
 
         if (!in_array($type, [DomainFood::TYPE_FRUIT, DomainFood::TYPE_VEGETABLE], true)) {
@@ -60,5 +66,14 @@ class FoodMapper
         $entity->setType($type);
 
         return $entity;
+    }
+
+    public function domainToDbArray(DomainFood $food): array
+    {
+        return [
+            'name' => $food->getName(),
+            'type' => $food->getType(),
+            'quantity_in_grams' => $food->getQuantityInGrams(),
+        ];
     }
 }
