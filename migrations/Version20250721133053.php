@@ -26,7 +26,7 @@ final class Version20250721133053 extends AbstractMigration
             ) DEFAULT CHARACTER SET utf8mb4 COLLATE `utf8mb4_unicode_ci` ENGINE = InnoDB;
         ');
 
-        $this->addSql('CREATE INDEX idx_food_name_type ON food (name, type);');
+        $this->addSql('CREATE UNIQUE INDEX idx_food_name_type ON food (name, type);');
         $this->addSql('CREATE INDEX idx_food_name ON food (name);');
         $this->addSql('CREATE INDEX idx_food_type ON food (type);');
     }
