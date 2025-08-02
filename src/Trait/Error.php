@@ -6,6 +6,9 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
 
 trait Error
 {
+    /**
+     * @return array<\App\DTO\Error>
+     */
     protected function jsonError(string|array $messages): array
     {
         $messages = (array)$messages;
@@ -25,6 +28,9 @@ trait Error
         return $errorMessages;
     }
 
+    /**
+     * @return array<\App\DTO\Error>
+     */
     protected function formatValidationErrors(ConstraintViolationListInterface $errors): array
     {
         $errorMessages = [];
