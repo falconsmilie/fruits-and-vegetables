@@ -6,10 +6,11 @@ use App\Domain\Model\Vegetable;
 use App\DTO\AddFoodRequest;
 use App\Domain\Model\Food;
 use App\Exception\FoodFactoryException;
+use App\Trait\Quantity;
 
 readonly class FoodFactory
 {
-    private const GRAMS_PER_KILOGRAM = 1000;
+    use Quantity;
 
     public function __construct() {
     }
@@ -29,9 +30,7 @@ readonly class FoodFactory
     }
 
     /**
-     * Converts an array of AddFoodRequest DTOs to an array of Food domain objects
-     *
-     * @param AddFoodRequest[] $dtos
+     * @param array<AddFoodRequest> $dtos
      * @return Food[]
      * @throws FoodFactoryException
      */
@@ -47,12 +46,5 @@ readonly class FoodFactory
         }
 
         return $foods;
-    }
-
-    private function quantityToGrams(int $quantity, string $unit): int
-    {
-        return $unit === Food::UNIT_KILOGRAM
-            ? (int)($quantity * self::GRAMS_PER_KILOGRAM)
-            : $quantity;
     }
 }

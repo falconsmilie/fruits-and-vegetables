@@ -9,6 +9,7 @@ use App\DTO\ListFoodResponse;
 use App\Exception\FoodServiceException;
 use App\Service\FoodService;
 use App\Trait\Error;
+use App\Trait\Quantity;
 use Exception;
 use JsonException;
 use Psr\Log\LoggerInterface;
@@ -24,8 +25,7 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 class FoodController extends AbstractController
 {
     use Error;
-
-    private const GRAMS_PER_KILOGRAM = 1000;
+    use Quantity;
 
     public function __construct(
         private readonly FoodService $foodService,
@@ -62,7 +62,7 @@ class FoodController extends AbstractController
 
         $result = array_map(fn(Food $food) => new ListFoodResponse(
             $food->getName(),
-            $this->convertQuantityToGrams($food->getQuantityInGrams(), $dto->unit),
+            $this->quantityToGrams($food->getQuantityInGrams(), $dto->unit),
             $dto->unit,
             $food->getType()
         ), $foods);
@@ -119,10 +119,5 @@ class FoodController extends AbstractController
         }
 
         return $this->json(['status' => 'success'], Response::HTTP_CREATED);
-    }
-
-    private function convertQuantityToGrams(int $quantity, string $unit): float|int
-    {
-        return $unit === Food::UNIT_KILOGRAM ? $quantity / self::GRAMS_PER_KILOGRAM : $quantity;
     }
 }
