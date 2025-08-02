@@ -49,7 +49,7 @@ class FoodController extends AbstractController
         }
 
         try {
-            $foods = $this->foodService->listFoodByType($dto->type, $dto->name);
+            $foods = $this->foodService->list($dto->type, $dto->name);
         } catch (FoodServiceException $e) {
             $this->logger->error($e->getMessage(), ['exception' => $e]);
 
@@ -58,7 +58,7 @@ class FoodController extends AbstractController
 
         $result = array_map(fn(Food $food) => new ListFoodResponse(
             $food->getName(),
-            $this->convertQuantity($food->getQuantityInGrams(), $dto->unit),
+            $this->convertQuantityToGrams($food->getQuantityInGrams(), $dto->unit),
             $dto->unit,
             $food->getType()
         ), $foods);
@@ -98,7 +98,7 @@ class FoodController extends AbstractController
         }
 
         try {
-            $this->foodService->bulkInsert($dtos);
+            $this->foodService->bulkUpsert($dtos);
         } catch (FoodServiceException $e) {
             $this->logger->error($e->getMessage(), ['exception' => $e]);
 
@@ -108,7 +108,7 @@ class FoodController extends AbstractController
         return $this->json(['status' => 'success'], Response::HTTP_CREATED);
     }
 
-    private function convertQuantity(int $quantity, string $unit): float|int
+    private function convertQuantityToGrams(int $quantity, string $unit): float|int
     {
         return $unit === Food::UNIT_KILOGRAM ? $quantity / self::GRAMS_PER_KILOGRAM : $quantity;
     }

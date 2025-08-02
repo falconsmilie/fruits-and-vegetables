@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Domain\Model;
+namespace App\Domain\Contract;
 
-interface FoodInterface
+interface FoodModelInterface
 {
     public function getName(): string;
 

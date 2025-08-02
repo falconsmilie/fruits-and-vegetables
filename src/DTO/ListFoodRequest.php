@@ -1,5 +1,4 @@
 <?php
-declare(strict_types=1);
 
 namespace App\DTO;
 
@@ -8,6 +7,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 class ListFoodRequest
 {
+    #[Assert\NotNull]
     #[Assert\Choice(choices: [Food::TYPE_FRUIT, Food::TYPE_VEGETABLE])]
     public ?string $type = null;
 

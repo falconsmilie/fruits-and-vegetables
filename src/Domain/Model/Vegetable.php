@@ -8,6 +8,6 @@ class Vegetable extends Food
 {
     public function getType(): string
     {
-        return 'vegetable';
+        return self::TYPE_VEGETABLE;
     }
 }

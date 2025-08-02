@@ -2,8 +2,8 @@
 
 namespace App\Repository;
 
+use App\Domain\Contract\FoodRepositoryInterface;
 use App\Domain\Model\Food as DomainFood;
-use App\Domain\Repository\FoodRepositoryInterface;
 use App\Entity\Food as EntityFood;
 use App\Exception\FoodMapperException;
 use App\Exception\FoodRepositoryException;

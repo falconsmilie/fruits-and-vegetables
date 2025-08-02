@@ -2,7 +2,9 @@
 
 namespace App\Domain\Model;
 
-abstract class Food implements FoodInterface
+use App\Domain\Contract\FoodModelInterface;
+
+abstract class Food implements FoodModelInterface
 {
     public const UNIT_GRAM = 'g';
     public const UNIT_KILOGRAM = 'kg';

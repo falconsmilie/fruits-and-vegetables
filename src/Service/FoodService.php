@@ -2,8 +2,8 @@
 
 namespace App\Service;
 
+use App\Domain\Contract\FoodRepositoryInterface;
 use App\Domain\Model\Food;
-use App\Domain\Repository\FoodRepositoryInterface;
 use App\DTO\AddFoodRequest;
 use App\Exception\FoodFactoryException;
 use App\Exception\FoodRepositoryException;
@@ -25,7 +25,7 @@ readonly class FoodService
     /**
      * @throws FoodServiceException
      */
-    public function addFood(Food $food): void
+    public function add(Food $food): void
     {
         try {
             $this->repository->entityManager()->wrapInTransaction(function () use ($food) {
@@ -43,7 +43,7 @@ readonly class FoodService
      * @param array<AddFoodRequest> $dtos
      * @throws FoodServiceException
      */
-    public function bulkInsert(array $dtos): void
+    public function bulkUpsert(array $dtos): void
     {
         if (empty($dtos)) {
             throw new FoodServiceException('Cannot insert empty food list.', Response::HTTP_BAD_REQUEST);
@@ -65,7 +65,7 @@ readonly class FoodService
     /**
      * @throws FoodServiceException
      */
-    public function removeFood(Food $food): void
+    public function remove(Food $food): void
     {
         try {
             $this->repository->entityManager()->wrapInTransaction(function () use ($food) {
@@ -83,7 +83,7 @@ readonly class FoodService
      * @return array<Food>
      * @throws FoodServiceException
      */
-    public function listFoodByType(string $type, ?string $filterName = null): array
+    public function list(string $type, ?string $filterName = null): array
     {
         if (!Food::isValidType($type)) {
             throw new FoodServiceException('Invalid food type: ' . $type, Response::HTTP_BAD_REQUEST);

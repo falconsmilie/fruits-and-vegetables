@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Domain\Repository;
+namespace App\Domain\Contract;
 
 use App\Domain\Model\Food;
 use App\Exception\FoodRepositoryException;
@@ -20,7 +20,7 @@ interface FoodRepositoryInterface
 
     public function remove(Food $food): void;
 
-    /** @return Food[] */
+    /** @return array<Food> */
     public function findByType(string $type, ?string $name = null): array;
 
     public function flush(): void;
