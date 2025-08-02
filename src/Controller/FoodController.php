@@ -6,9 +6,9 @@ use App\Domain\Model\Food;
 use App\DTO\AddFoodRequest;
 use App\DTO\ListFoodRequest;
 use App\DTO\ListFoodResponse;
-use App\DTO\Error;
 use App\Exception\FoodServiceException;
 use App\Service\FoodService;
+use App\Trait\Error;
 use Exception;
 use JsonException;
 use Psr\Log\LoggerInterface;
@@ -18,12 +18,13 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Serializer\SerializerInterface;
-use Symfony\Component\Validator\ConstraintViolationListInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 #[Route('/api/food')]
 class FoodController extends AbstractController
 {
+    use Error;
+
     private const GRAMS_PER_KILOGRAM = 1000;
 
     public function __construct(
@@ -53,7 +54,10 @@ class FoodController extends AbstractController
         } catch (FoodServiceException $e) {
             $this->logger->error($e->getMessage(), ['exception' => $e]);
 
-            return $this->jsonError($e->getMessage(), Response::HTTP_INTERNAL_SERVER_ERROR);
+            return $this->json(
+                $this->jsonError($e->getMessage()),
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
         }
 
         $result = array_map(fn(Food $food) => new ListFoodResponse(
@@ -72,7 +76,10 @@ class FoodController extends AbstractController
         try {
             $foods = $request->toArray();
         } catch (JsonException  $e) {
-            return $this->jsonError($e->getMessage());
+            return $this->json(
+                $this->jsonError($e->getMessage()),
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
         }
 
         $dtos = [];
@@ -82,7 +89,10 @@ class FoodController extends AbstractController
                 $dtos[] = $this->serializer->denormalize($food, AddFoodRequest::class);
             }
         } catch (Exception $e) {
-            return $this->jsonError($e->getMessage());
+            return $this->json(
+                $this->jsonError($e->getMessage()),
+                Response::HTTP_BAD_REQUEST
+            );
         }
 
         $errors = [];
@@ -102,7 +112,10 @@ class FoodController extends AbstractController
         } catch (FoodServiceException $e) {
             $this->logger->error($e->getMessage(), ['exception' => $e]);
 
-            return $this->jsonError($e->getMessage(), Response::HTTP_INTERNAL_SERVER_ERROR);
+            return $this->json(
+                $this->jsonError($e->getMessage()),
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
         }
 
         return $this->json(['status' => 'success'], Response::HTTP_CREATED);
@@ -111,39 +124,5 @@ class FoodController extends AbstractController
     private function convertQuantityToGrams(int $quantity, string $unit): float|int
     {
         return $unit === Food::UNIT_KILOGRAM ? $quantity / self::GRAMS_PER_KILOGRAM : $quantity;
-    }
-
-    private function formatValidationErrors(ConstraintViolationListInterface $errors): array
-    {
-        $errorMessages = [];
-
-        foreach ($errors as $error) {
-            $errorMessages[] = new Error(
-                $error->getPropertyPath(),
-                $error->getMessage(),
-                $error->getCode()
-            );
-        }
-
-        return $errorMessages;
-    }
-
-    protected function jsonError(string|array $messages, int $status = Response::HTTP_BAD_REQUEST): JsonResponse
-    {
-        $messages = (array)$messages;
-
-        $errorMessages = [];
-
-        $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2);
-        $callerClass = $trace[1]['class'] ?? static::class;
-        $callerMethod = $trace[1]['function'] ?? '';
-
-        $path = "$callerClass::$callerMethod";
-
-        foreach ($messages as $message) {
-            $errorMessages[] = new Error($path, $message);
-        }
-
-        return $this->json(['errors' => $errorMessages], $status);
     }
 }
